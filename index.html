@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Атлас Анатомии: Скелет Человека (201 кость)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 3D Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Загрузка 3D модели скелета (BodyParts3D / Z-Anatomy)...</div>
+    <div class="loading-progress-bar">
+      <div id="loading-fill" class="loading-fill"></div>
+    </div>
+    <div id="loading-sub" style="font-size: 11px; color: #94a3b8; margin-top: 10px;">Инициализация 201 анатомических костей...</div>
+  </div>
+
+  <!-- Hover Tooltip -->
+  <div id="hover-tooltip"></div>
+
+  <!-- Top Bar -->
+  <header id="top-bar" class="glass-panel">
+    <div class="brand-wrapper">
+      <span class="brand-icon">💀</span>
+      <div>
+        <div class="brand-title">3D Скелет Человека</div>
+      </div>
+      <span class="brand-badge">201 Кость • BodyParts3D</span>
+    </div>
+
+    <!-- Live Search -->
+    <div class="search-container">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="bone-search" class="search-input" placeholder="Поиск кости (на русском, латыни, английском)...">
+      <div id="search-results" class="search-results"></div>
+    </div>
+
+    <!-- Top Action Buttons -->
+    <div class="top-actions">
+      <button id="btn-toggle-sidebar" class="btn-icon" title="Скрыть/показать список систем">
+        <span>☰</span> Системы
+      </button>
+      <button id="btn-help" class="btn-icon" title="Горячие клавиши">
+        <span>⌨</span> Справка
+      </button>
+      <button id="btn-export-all" class="btn-icon" title="Экспорт модели в 3D (GLB)">
+        <span>💾</span> Скачать 3D
+      </button>
+    </div>
+  </header>
+
+  <!-- Left Sidebar: Anatomical Systems Tree -->
+  <aside id="sidebar" class="glass-panel">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Анатомические отделы</span>
+      <span class="bones-count-pill" id="total-bones-count">201 кость</span>
+    </div>
+    <div class="tree-content" id="systems-tree">
+      <!-- Generated dynamically in JS -->
+    </div>
+  </aside>
+
+  <!-- Right Inspector Panel -->
+  <div id="inspector-panel" class="glass-panel hidden">
+    <div class="inspector-header">
+      <button class="close-btn" id="btn-close-inspector" title="Закрыть">&times;</button>
+      <div class="bone-tag" id="panel-bone-group">Отдел</div>
+      <h2 class="bone-title-ru" id="panel-bone-ru">Название кости</h2>
+      <div class="bone-title-la" id="panel-bone-la">Terminologia Anatomica</div>
+      <div class="bone-title-en" id="panel-bone-en">English Name</div>
+    </div>
+    <div class="inspector-body">
+      <div>
+        <div class="info-section-title">Анатомическое описание</div>
+        <p class="bone-description" id="panel-bone-desc">Описание кости, функции и особенности.</p>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-box">
+          <div class="meta-label">Сторона</div>
+          <div class="meta-val" id="panel-bone-side">Осевая</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Код FMA / BP</div>
+          <div class="meta-val" id="panel-bone-fma">FMA12519</div>
+        </div>
+      </div>
+
+      <div class="inspector-actions">
+        <button id="btn-focus-bone" class="btn-primary" title="Приблизить камеру к этой кости">
+          <span>🎯</span> Приблизить
+        </button>
+        <button id="btn-isolate-bone" class="btn-secondary" title="Скрыть все остальные кости">
+          <span>👁</span> Изолировать
+        </button>
+      </div>
+      <button id="btn-export-bone" class="btn-secondary" style="width: 100%;" title="Экспортировать только эту кость в OBJ">
+        <span>📦</span> Экспорт кости (.OBJ)
+      </button>
+    </div>
+  </div>
+
+  <!-- Camera Presets Bar -->
+  <div id="camera-presets" class="glass-panel">
+    <button class="camera-pill active" data-preset="front">Спереди</button>
+    <button class="camera-pill" data-preset="back">Сзади</button>
+    <button class="camera-pill" data-preset="side">Сбоку</button>
+    <button class="camera-pill" data-preset="skull">💀 Череп</button>
+    <button class="camera-pill" data-preset="spine">🦴 Позвоночник</button>
+    <button class="camera-pill" data-preset="thorax">🫁 Грудная клетка</button>
+    <button class="camera-pill" data-preset="pelvis">🩻 Таз</button>
+    <button class="camera-pill" data-preset="hand">🖐 Кисть</button>
+    <button class="camera-pill" data-preset="foot">🦶 Стопа</button>
+  </div>
+
+  <!-- Bottom Toolbar -->
+  <div id="bottom-toolbar" class="glass-panel">
+    <div class="toolbar-group">
+      <button class="btn-tool active" id="mat-realistic" title="Реалистичный вид кости">
+        <span>🦴</span> Кость
+      </button>
+      <button class="btn-tool" id="mat-medical" title="Медицинский гипс / глина">
+        <span>🏛</span> Гипс
+      </button>
+      <button class="btn-tool" id="mat-xray" title="Рентген / Голограмма">
+        <span>💠</span> Рентген
+      </button>
+      <button class="btn-tool" id="mat-wireframe" title="Каркасная сетка">
+        <span>📐</span> Сетка
+      </button>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-group">
+      <span style="font-size: 12px; color: var(--text-muted);">Прозрачность:</span>
+      <input type="range" id="opacity-slider" min="10" max="100" value="100" style="width: 80px; accent-color: var(--accent-cyan); cursor: pointer;">
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <div class="toolbar-group">
+      <button class="btn-tool" id="btn-autorotate" title="Плавное автоматическое вращение">
+        <span>🔄</span> Вращение
+      </button>
+      <button class="btn-tool" id="btn-reset-view" title="Сбросить камеру и видимость">
+        <span>↺</span> Сброс
+      </button>
+    </div>
+  </div>
+
+  <!-- Help / Shortcuts Modal -->
+  <div id="help-modal" class="glass-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 16px; font-weight: 700;">Управление и горячие клавиши</h3>
+      <button id="btn-close-help" class="close-btn">&times;</button>
+    </div>
+    <div class="help-row">
+      <span>Вращение камеры</span>
+      <span class="kbd">Левая кнопка мыши + движение</span>
+    </div>
+    <div class="help-row">
+      <span>Панорамирование (сдвиг)</span>
+      <span class="kbd">Правая кнопка мыши / Две кнопки</span>
+    </div>
+    <div class="help-row">
+      <span>Приближение / Масштаб</span>
+      <span class="kbd">Колесо мыши</span>
+    </div>
+    <div class="help-row">
+      <span>Выбрать кость</span>
+      <span class="kbd">Клик по кости</span>
+    </div>
+    <div class="help-row">
+      <span>Приблизить к выбранной</span>
+      <span class="kbd">F</span>
+    </div>
+    <div class="help-row">
+      <span>Изолировать кость</span>
+      <span class="kbd">I</span>
+    </div>
+    <div class="help-row">
+      <span>Режим рентгена (X-Ray)</span>
+      <span class="kbd">X</span>
+    </div>
+    <div class="help-row">
+      <span>Сбросить вид</span>
+      <span class="kbd">Пробел</span>
+    </div>
+    <div class="help-row">
+      <span>Снять выделение / Закрыть</span>
+      <span class="kbd">Esc</span>
+    </div>
+  </div>
+
+  <!-- Libraries -->
+  <script src="libs/three.min.js"></script>
+  <script src="libs/OrbitControls.js"></script>
+  <script src="libs/GLTFLoader.js"></script>
+  <script src="libs/GLTFExporter.js"></script>
+  <script src="libs/OBJExporter.js"></script>
+
+  <!-- Main Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
